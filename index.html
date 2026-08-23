@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mammalogy Taxonomy Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#1D9E75;--green-light:#E1F5EE;--green-dark:#0F6E56;
+  --amber:#BA7517;--amber-light:#FAEEDA;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --bg:#ffffff;--bg2:#f6f5f0;--bg3:#efede6;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1a;--bg2:#242422;--bg3:#2c2c2a;
+    --text:#f0ede6;--text2:#b4b2a9;--text3:#888780;
+    --border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.22);
+    --green:#1D9E75;--green-light:#04342C;--green-dark:#5DCAA5;
+    --amber-light:#412402;--red-light:#501313;
+  }
+}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;padding:24px 16px 48px}
+#app{max-width:700px;margin:0 auto;background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:24px}
+.header{text-align:center;padding-bottom:16px;border-bottom:0.5px solid var(--border);margin-bottom:16px}
+.header h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:600;color:var(--text);letter-spacing:-0.3px}
+.header p{font-size:14px;color:var(--text2);margin-top:4px}
+.scorebar{display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+.score-pill{background:var(--bg2);border:0.5px solid var(--border);border-radius:20px;padding:5px 14px;font-size:13px;color:var(--text2)}
+.score-pill span{font-weight:600;color:var(--text)}
+.progress-bar{height:3px;background:var(--bg2);border-radius:2px;margin-bottom:18px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width 0.4s ease}
+.section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 6px}
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.filter-btn{font-size:11px;padding:4px 10px;border-radius:12px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer;font-family:'Source Sans 3',sans-serif;transition:all 0.15s}
+.filter-btn.active{background:var(--green);border-color:var(--green-dark);color:#fff;font-weight:600}
+.field-toggle-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--border)}
+.field-toggle-bar .filter-btn.active{background:var(--amber);border-color:var(--amber)}
+.img-wrap{width:100%;aspect-ratio:16/9;background:var(--bg2);border-radius:var(--radius-lg);overflow:hidden;border:0.5px solid var(--border);margin-bottom:16px;position:relative}
+.img-wrap img{width:100%;height:100%;object-fit:contain;display:block;transition:opacity 0.3s}
+.img-wrap img.loading{opacity:0}
+.no-img{display:flex;align-items:center;justify-content:center;height:100%;font-size:14px;color:var(--text3);font-style:italic;text-align:center;padding:0 20px}
+.img-loading-msg{display:flex;align-items:center;justify-content:center;height:100%;font-size:14px;color:var(--text3)}
+.lab-tag{position:absolute;top:8px;left:8px;font-size:11px;font-weight:600;color:#fff;background:rgba(0,0,0,0.45);padding:3px 9px;border-radius:20px;pointer-events:none}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+@media(max-width:480px){.fields{grid-template-columns:1fr}}
+.field-group{display:flex;flex-direction:column;gap:4px}
+.field-group.wide{grid-column:1/-1}
+.field-group label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.field-group input{border:0.5px solid var(--border2);border-radius:var(--radius);padding:8px 10px;font-size:14px;font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);transition:border-color 0.2s,background 0.2s;outline:none;width:100%}
+.field-group input.italic-input{font-style:italic}
+.field-group input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,0.15)}
+.field-group input.correct{background:var(--green-light);border-color:var(--green);color:var(--green-dark)}
+.field-group input.incorrect{background:var(--red-light);border-color:var(--red);color:var(--red)}
+.actions{display:flex;gap:8px;margin-bottom:12px}
+.btn{flex:1;padding:9px 12px;border-radius:var(--radius);font-size:14px;font-family:'Source Sans 3',sans-serif;font-weight:600;cursor:pointer;border:0.5px solid var(--border2);background:var(--bg);color:var(--text);transition:background 0.15s,transform 0.1s}
+.btn:hover{background:var(--bg2)}
+.btn:active{transform:scale(0.98)}
+.btn:disabled{opacity:0.45;cursor:default}
+.btn-primary{background:var(--green);border-color:var(--green-dark);color:#fff}
+.btn-primary:hover{background:var(--green-dark)}
+.feedback{border-radius:var(--radius);padding:10px 14px;font-size:13px;line-height:1.6;margin-bottom:10px;border:0.5px solid transparent}
+.feedback.correct-all{background:var(--green-light);border-color:#5DCAA5;color:var(--green-dark)}
+.feedback.partial{background:var(--amber-light);border-color:#EF9F27;color:var(--amber)}
+.feedback.wrong{background:var(--red-light);border-color:#F09595;color:var(--red)}
+.feedback-row{display:flex;align-items:center;gap:6px;padding:2px 0}
+.feedback-row .icon{font-size:13px;width:16px;text-align:center;flex-shrink:0}
+.feedback-row .answer{font-weight:600}
+.mode-info{text-align:center;font-size:12px;color:var(--text3);padding-top:8px;border-top:0.5px solid var(--border);margin-top:4px}
+.mode-info strong{color:var(--text2)}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:28px 24px;max-width:380px;width:90%;text-align:center}
+.modal h2{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px;color:var(--text)}
+.modal .big-score{font-size:52px;font-weight:600;color:var(--green);margin:12px 0}
+.modal p{font-size:14px;color:var(--text2);margin-bottom:20px}
+.inat-credit{position:absolute;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.85);text-shadow:0 1px 3px rgba(0,0,0,0.6);background:rgba(0,0,0,0.25);padding:2px 6px;border-radius:4px;pointer-events:none;display:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>Mammalogy Taxonomy Quiz</h1>
+    <p>Fill in the taxonomy and distribution for each species</p>
+  </div>
+  <div class="scorebar">
+    <div class="score-pill">Score <span id="scoreDisplay">0</span>/<span id="totalDisplay">0</span></div>
+    <div class="score-pill">Question <span id="qNum">1</span>/<span id="qTotal">—</span></div>
+    <div class="score-pill">Streak <span id="streak">0</span></div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+  <div class="section-label">Filter by lab</div>
+  <div class="filter-bar" id="filterBar"></div>
+
+  <div class="section-label">Fields to practice</div>
+  <div class="filter-bar field-toggle-bar" id="toggleBar"></div>
+
+  <div class="img-wrap" id="imgWrap">
+    <div class="lab-tag" id="labTag" style="display:none"></div>
+    <div class="img-loading-msg" id="imgLoadingMsg">Loading photo…</div>
+    <img id="animalImg" src="" alt="Mammal to identify" style="display:none">
+    <div class="no-img" id="noImg" style="display:none">No image available — rely on what you know!</div>
+    <div class="inat-credit" id="inatCredit">Photo © iNaturalist</div>
+  </div>
+
+  <div class="fields" id="fieldsWrap"></div>
+
+  <div class="actions">
+    <button class="btn" id="hintBtn" onclick="showHint()">Hint</button>
+    <button class="btn btn-primary" id="submitBtn" onclick="checkAnswer()">Submit</button>
+    <button class="btn" id="skipBtn" onclick="nextAnimal()">Skip →</button>
+  </div>
+  <div id="feedbackBox"></div>
+  <div class="mode-info">Press <strong>Enter</strong> to submit &middot; <strong>Tab</strong> to move between fields</div>
+</div>
+<div class="modal-bg" id="endModal">
+  <div class="modal">
+    <h2>Quiz complete!</h2>
+    <div class="big-score" id="finalScore">—</div>
+    <p id="finalTime" style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px"></p>
+    <p id="finalMsg"></p>
+    <button class="btn btn-primary" id="retryBtn" style="width:100%;margin-bottom:8px" onclick="retryMissed()">Retry missed questions</button>
+    <button class="btn" style="width:100%" onclick="restartQuiz()">Start over (all questions)</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────────────────────────────────
+const MAMMALS = [{"lab":"1","name":"Platypus","order":"Monotremata","family":"Ornithorhynchidae","subclass":"Prototheria","infraclass":"Australosphenida","continent":["Oceania"]},{"lab":"1","name":"Echidnas","order":"Monotremata","family":"Tachyglossidae","subclass":"Prototheria","infraclass":"Australosphenida","continent":["Oceania"]},{"lab":"1","name":"Virginia Opossum","order":"Didelphimorphia","family":"Didelphidae","subclass":"Theria","infraclass":"Marsupialia","scientific":"Didelphis virginiana","continent":["North America"],"iucn":"LC","alt":["North American Opossum"]},{"lab":"1","name":"Kangaroos","order":"Diprotodontia","family":"Macropodidae","subclass":"Theria","infraclass":"Marsupialia","superorder":"Australidelphia","continent":["Oceania"]},{"lab":"1","name":"Wombats","order":"Diprotodontia","family":"Vombatidae","subclass":"Theria","infraclass":"Marsupialia","superorder":"Australidelphia","continent":["Oceania"]},{"lab":"1","name":"Nine-banded Armadillo","order":"Cingulata","family":"Dasypodidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Dasypus mexicanus","superorder":"Xenarthra","continent":["North America"],"iucn":"LC","alt":["Common Long-nosed Armadillo"]},{"lab":"1","name":"Three-toed Sloths","order":"Pilosa","family":"Bradypodidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Xenarthra","continent":["North America"]},{"lab":"1","name":"Two-toed Sloth","order":"Pilosa","family":"Choloepodidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Xenarthra","continent":["North America","South America"]},{"lab":"1","name":"Silky Anteater","order":"Pilosa","family":"Cyclopedidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Xenarthra","continent":["South America"]},{"lab":"1","name":"Elephant Shrews","order":"Macroscelidea","family":"Macroscelididae","subclass":"Theria","infraclass":"Placentalia","superorder":"Afrotheria","continent":["Africa"]},{"lab":"1","name":"Elephants","order":"Proboscidea","family":"Elephantidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Afrotheria","continent":["Africa"]},{"lab":"1","name":"Hyrax","order":"Hyracoidea","family":"Procaviidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Afrotheria","continent":["Africa"]},{"lab":"1","name":"West Indian Manatee","order":"Sirenia","family":"Trichechidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Afrotheria","continent":["North America","South America"],"iucn":"VU","alt":["American Manatee","Antillean Manatee","Caribbean Manatee","Florida Manatee","North American Manatee"]},{"lab":"1","name":"Colugos","order":"Dermoptera","family":"Cynocephalidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["Asia"]},{"lab":"1","name":"Treeshrews","order":"Scandentia","family":"Tupaiidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["Asia"]},{"lab":"1","name":"New World Monkeys","order":"Primates","family":"Cebidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["South America"]},{"lab":"1","name":"Old world monkeys","order":"Primates","family":"Cercopithecidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["Africa"]},{"lab":"1","name":"Galagos and Bushbabies","order":"Primates","family":"Galagidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["Africa"]},{"lab":"1","name":"Great Apes","order":"Primates","family":"Hominidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["Everywhere"]},{"lab":"1","name":"Gibbons","order":"Primates","family":"Hylobatidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["Asia"]},{"lab":"1","name":"Tarsiers","order":"Primates","family":"Tarsiidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["Asia"]},{"lab":"6","name":"Mountain Beaver","order":"Rodentia","family":"Aplodontiidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Aplodontia","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Boomer","Sewellel","Point Arena Mountain Beaver","Point Reyes Mountain Beaver"]},{"lab":"6","name":"North American Beaver","order":"Rodentia","family":"Castoridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Castor canadensis","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Capybara","order":"Rodentia","family":"Caviidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["South America"]},{"lab":"6","name":"Red-backed Vole","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Clethrionomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Collared Lemming","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Dicrostonyx","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Eastern Meadow Vole","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Microtus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Meadow Vole","Block Island Meadow Vole","Penobscot Meadow Vole","Beach Vole","Muskeget Vole"]},{"lab":"6","name":"Eastern Woodrat","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Neotoma","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Key Largo Woodrat"]},{"lab":"6","name":"Golden Mouse","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Ochrotomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Common Muskrat","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Ondatra","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Muskbeaver"]},{"lab":"6","name":"Rice Rat","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Oryzomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Deermouse","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Peromyscus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Fulvous Harvest Mouse","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Reithrodontomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Hispid Cotton Rat","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sigmodon","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Bog Lemming","order":"Rodentia","family":"Cricetidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Synaptomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Agoutis","order":"Rodentia","family":"Dasyproctidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Euarchontoglires","continent":["South America"]},{"lab":"6","name":"Coypu","order":"Rodentia","family":"Echimyidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Myocastor","superorder":"Euarchontoglires","continent":["South America"],"iucn":"LC","alt":["Nutria"]},{"lab":"6","name":"North American Porcupine","order":"Rodentia","family":"Erethizontidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Erethizon","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Quiller","Quill Pig"]},{"lab":"6","name":"Pocket Gopher","order":"Rodentia","family":"Geomyidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Geomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Pocket Mouse","order":"Rodentia","family":"Heteromyidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Chaetodipus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Kangaroo Rat","order":"Rodentia","family":"Heteromyidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Dipodomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"House Mouse","order":"Rodentia","family":"Muridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Mus musculus","superorder":"Euarchontoglires","continent":["Global"],"iucn":"LC"},{"lab":"6","name":"Roof Rat and Brown rat","order":"Rodentia","family":"Muridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Rattus","superorder":"Euarchontoglires","continent":["Global"],"iucn":"LC"},{"lab":"6","name":"Woodland Jumping Mouse","order":"Rodentia","family":"Zapodidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Napaeozapus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"6","name":"Meadow Jumping Mouse","order":"Rodentia","family":"Zapodidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Zapus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"NA"},{"lab":"12","name":"Prairie Dog","order":"Rodentia","family":"Sciuridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Cynomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"12","name":"Flying Squirrel","order":"Rodentia","family":"Sciuridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Glaucomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"12","name":"Thirteen-lined Ground Squirrel","order":"Rodentia","family":"Sciuridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Ictidomys","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"12","name":"Woodchuck","order":"Rodentia","family":"Sciuridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Marmota monax","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Groundhog"]},{"lab":"12","name":"Western Chipmunks","order":"Rodentia","family":"Sciuridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Neotamias","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"12","name":"Eastern Gray Squirrel","order":"Rodentia","family":"Sciuridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sciurus carolinensis","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"12","name":"Eastern Fox Squirrel","order":"Rodentia","family":"Sciuridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sciurus niger","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Bryant's Fox Squirrel","Cat Squirrel","Delmarva Fox Squirrel","Fox Squirrel","Stump-eared Squirrel","Western Fox Squirrel","Big Cypress Fox Squirrel"]},{"lab":"12","name":"Eastern Chipmunk","order":"Rodentia","family":"Sciuridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Tamias striatus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC"},{"lab":"12","name":"North American Red Squirrel","order":"Rodentia","family":"Sciuridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Tamiasciurus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Pine Squirrel"]},{"lab":"12","name":"Snowshoe Hare","order":"Lagomorpha","family":"Leporidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Lepus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Snowshoe Rabbit","Varying Hare"]},{"lab":"12","name":"Black-tailed Jackrabbit","order":"Lagomorpha","family":"Leporidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Lepus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["California Jackrabbit"]},{"lab":"12","name":"Swamp Rabbit","order":"Lagomorpha","family":"Leporidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sylvilagus aquaticus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Cane-cutter"]},{"lab":"12","name":"Eastern Cottontail","order":"Lagomorpha","family":"Leporidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sylvilagus floridanus","superorder":"Euarchontoglires","continent":["North America","South America"],"iucn":"LC","alt":["Florida Cottontail"]},{"lab":"12","name":"Appalachian Cottontail","order":"Lagomorpha","family":"Leporidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sylvilagus obscurus","superorder":"Euarchontoglires","continent":["North America"],"iucn":"NT","alt":["Allegheny Cottontail","Wood Rabbit"]},{"lab":"12","name":"Marsh Rabbit","order":"Lagomorpha","family":"Leporidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sylvilagus palustris","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Key Rabbit","Lower Keys Marsh Rabbit"]},{"lab":"12","name":"Pika","order":"Lagomorpha","family":"Ochotonidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Ochotona","superorder":"Euarchontoglires","continent":["North America"],"iucn":"LC","alt":["Cony","Rock Rabbit","Whistling Hare"]},{"lab":"5","name":"Brazilian Free-tailed Bat","order":"Chiroptera","family":"Molossidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Tadarida brasiliensis","superorder":"Laurasiatheria","continent":["North America","South America"],"iucn":"LC","alt":["Mexican Free-tailed Bat"]},{"lab":"5","name":"Leaf-nosed bats","order":"Chiroptera","family":"Phyllostomidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["North America","South America"]},{"lab":"5","name":"Megabats (fruit bats)","order":"Chiroptera","family":"Pteropodidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Asia"]},{"lab":"5","name":"Northern Hoary Bat","order":"Chiroptera","family":"Vespertilionidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Lasiurus cinereus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"5","name":"Eastern Red Bat","order":"Chiroptera","family":"Vespertilionidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Lasiurus borealis","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Red Bat"]},{"lab":"5","name":"Southern Yellow Bat","order":"Chiroptera","family":"Vespertilionidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Lasiurus ega","superorder":"Laurasiatheria","continent":["North America","South America"],"iucn":"LC"},{"lab":"5","name":"Rafinesque's Big-eared Bat","order":"Chiroptera","family":"Vespertilionidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Corynorhinus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"5","name":"Big Brown Bat","order":"Chiroptera","family":"Vespertilionidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Eptesicus fuscus","superorder":"Laurasiatheria","continent":["North America","South America"],"iucn":"LC"},{"lab":"5","name":"Myotis","order":"Chiroptera","family":"Vespertilionidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Myotis","superorder":"Laurasiatheria","continent":["North America"],"iucn":"EN"},{"lab":"5","name":"Tricolored Bat","order":"Chiroptera","family":"Vespertilionidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Perimyotis","superorder":"Laurasiatheria","continent":["North America"],"iucn":"VU","alt":["Eastern Pipistrelle"]},{"lab":"5","name":"Pangolins","order":"Pholidota","family":"Manidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Asia"]},{"lab":"7","name":"Red Panda","order":"Carnivora","family":"Ailuridae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Asia"]},{"lab":"7","name":"Domestic Dog","order":"Carnivora","family":"Canidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Canis familiaris","superorder":"Laurasiatheria","continent":["Domesticated"],"iucn":"NA","alt":["Dog","Dingo","Feral Dog","New Guinea Singing Dog","Village Dog"]},{"lab":"7","name":"Coyote","order":"Carnivora","family":"Canidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Canis latrans","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Brush Wolf","Prairie Wolf"]},{"lab":"7","name":"Red Wolf","order":"Carnivora","family":"Canidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Canis rufus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"CR"},{"lab":"7","name":"Northern Gray Fox","order":"Carnivora","family":"Canidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Urocyon cinereoargenteus","superorder":"Laurasiatheria","continent":["North America","South America"],"iucn":"LC","alt":["Tree Fox"]},{"lab":"7","name":"Arctic Fox","order":"Carnivora","family":"Canidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Vulpes lagopus","superorder":"Laurasiatheria","continent":["Asia","Europe","North America"],"iucn":"LC","alt":["Polar Fox"]},{"lab":"7","name":"Red Fox","order":"Carnivora","family":"Canidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Vulpes vulpes","superorder":"Laurasiatheria","continent":["Africa","Asia","Europe","North America"],"iucn":"LC","alt":["Silver Fox","Cross Fox"]},{"lab":"7","name":"Domestic Cat","order":"Carnivora","family":"Felidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Felis catus","superorder":"Laurasiatheria","continent":["Domesticated"],"iucn":"NA","alt":["Cat"]},{"lab":"7","name":"Canadian Lynx","order":"Carnivora","family":"Felidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Lynx canadensis","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"7","name":"Bobcat","order":"Carnivora","family":"Felidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Lynx rufus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Red Lynx","Bay Lynx","Cat Lynx"]},{"lab":"7","name":"Jaguar","order":"Carnivora","family":"Felidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Panthera onca","superorder":"Laurasiatheria","continent":["North America","South America"],"iucn":"NT"},{"lab":"7","name":"Puma","order":"Carnivora","family":"Felidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Puma concolor","superorder":"Laurasiatheria","continent":["North America","South America"],"iucn":"LC","alt":["Cougar","Mountain Lion","Catamount","Panther","Florida Panther"]},{"lab":"7","name":"Mongooses","order":"Carnivora","family":"Herpestidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Africa"]},{"lab":"7","name":"Hyenas","order":"Carnivora","family":"Hyaenidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Africa"]},{"lab":"7","name":"Striped Skunk","order":"Carnivora","family":"Mephitidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Mephitis mephitis","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"7","name":"Spotted Skunks","order":"Carnivora","family":"Mephitidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Spilogale","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"7","name":"Sea Otter","order":"Carnivora","family":"Mustelidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Enhydra lutris","superorder":"Laurasiatheria","continent":["Asia","North America"],"iucn":"EN"},{"lab":"7","name":"North American River Otter","order":"Carnivora","family":"Mustelidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Lontra canadensis","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["River Otter"]},{"lab":"7","name":"American Marten","order":"Carnivora","family":"Mustelidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Martes americana","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["American Pine Marten"]},{"lab":"7","name":"American Ermine","order":"Carnivora","family":"Mustelidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Mustela richardsonii","superorder":"Laurasiatheria","continent":["North America"],"iucn":"NA"},{"lab":"7","name":"Long-tailed Weasel","order":"Carnivora","family":"Mustelidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Neogale frenata","superorder":"Laurasiatheria","continent":["North America","South America"],"iucn":"LC"},{"lab":"7","name":"American Mink","order":"Carnivora","family":"Mustelidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Neogale vison","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"7","name":"Fisher","order":"Carnivora","family":"Mustelidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Pekania pennanti","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Pennant Marten"]},{"lab":"7","name":"American Badger","order":"Carnivora","family":"Mustelidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Taxidea taxus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"7","name":"Walrus","order":"Carnivora","family":"Odobenidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Odobenus","superorder":"Laurasiatheria","continent":["Asia","Europe","North America"],"iucn":"VU","alt":["Atlantic Walrus","Laptev Walrus","Pacific Walrus"]},{"lab":"7","name":"California Sea Lion","order":"Carnivora","family":"Otariidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Zalophus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["California Sealion","Californian Sea Lion"]},{"lab":"7","name":"Caribbean Monk Seal","order":"Carnivora","family":"Phocidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Neomonachus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"EX"},{"lab":"7","name":"Harbor Seal","order":"Carnivora","family":"Phocidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Phoca","superorder":"Laurasiatheria","continent":["Asia","Europe","North America"],"iucn":"LC","alt":["Common Seal","Harbour Seal","Eastern Atlantic Harbor Seal","Western Atlantic Harbor Seal","Eastern Pacific Harbor Seal","Kuril Seal","Western Pacific Harbor Seal"]},{"lab":"7","name":"Ringtail","order":"Carnivora","family":"Procyonidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Bassariscus astutus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"7","name":"Kinkajou","order":"Carnivora","family":"Procyonidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Potos flavus","superorder":"Laurasiatheria","continent":["North America","South America"],"iucn":"LC"},{"lab":"7","name":"Northern Raccoon","order":"Carnivora","family":"Procyonidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Procyon lotor","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Common Raccoon"]},{"lab":"7","name":"American Black Bear","order":"Carnivora","family":"Ursidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Ursus americanus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"7","name":"Civets and Gennets","order":"Carnivora","family":"Viverridae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Asia"]},{"lab":"10","name":"Hedgehog","order":"Eulipotyphla","family":"Erinaceidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Africa"]},{"lab":"10","name":"Short-tailed Shrew","order":"Eulipotyphla","family":"Soricidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Blarina","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"10","name":"North American Least Shrew","order":"Eulipotyphla","family":"Soricidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Cryptotis","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["American Least Shrew"]},{"lab":"10","name":"Eastern Pygmy Shrew","order":"Eulipotyphla","family":"Soricidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sorex","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["American Pygmy Shrew"]},{"lab":"10","name":"American Water Shrew","order":"Eulipotyphla","family":"Soricidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sorex","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"10","name":"Star-nosed Mole","order":"Eulipotyphla","family":"Talpidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Condylura","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"10","name":"Hairy-tailed Mole","order":"Eulipotyphla","family":"Talpidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Parascalops","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Brewer's Mole"]},{"lab":"10","name":"Eastern Mole","order":"Eulipotyphla","family":"Talpidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Scalopus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"11","name":"Horses","order":"Perissodactyla","family":"Equidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Africa"]},{"lab":"11","name":"Rhinoceros","order":"Perissodactyla","family":"Rhinocerotidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Africa"]},{"lab":"11","name":"Tapir","order":"Perissodactyla","family":"Tapiridae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["South America"]},{"lab":"11","name":"Sperm Whale","order":"Artiodactyla","family":"Physeteridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Physeter macrocephalus","superorder":"Laurasiatheria","continent":["Africa","Antarctica","Asia","Europe","North America","Oceania","South America"],"iucn":"VU","alt":["Cachalot","Pot Whale","Spermacet Whale"]},{"lab":"11","name":"North Atlantic Right Whale","order":"Artiodactyla","family":"Balaenidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Eubalaena glacialis","superorder":"Laurasiatheria","continent":["Europe","North America"],"iucn":"CR","alt":["Biscayan Right Whale","Black Right Whale","Nordcaper","Northern Right Whale"]},{"lab":"11","name":"Blue Whale","order":"Artiodactyla","family":"Balaenopteridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Balaenoptera musculus","superorder":"Laurasiatheria","continent":["Africa","Antarctica","Asia","Europe","North America","Oceania","South America"],"iucn":"EN","alt":["Blue Rorqual","Sibbald's Rorqual","Sulphur-bottom Whale","Northern Blue Whale","Pygmy Blue Whale","Antarctic Blue Whale","Southern Blue Whale","Northern Indian Ocean Blue Whale"]},{"lab":"11","name":"Beluga","order":"Artiodactyla","family":"Monodontidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Asia","Europe","North America"],"iucn":"LC","alt":["Sea Canary","White Whale"]},{"lab":"11","name":"Common Dolphin","order":"Artiodactyla","family":"Delphinidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Delphinus delphis","superorder":"Laurasiatheria","continent":["Africa","Asia","Europe","North America","Oceania","South America"],"iucn":"LC","alt":["Atlantic Dolphin","Common Dolphin","Criss-cross Dolphin","Pacific Dolphin","Saddle-backed Dolphin","Short-beaked Saddleback Dolphin","White-bellied Porpoise","Black Sea Common Dolphin","Short-beaked Common Dolphin","Long-beaked Common Dolphin"]},{"lab":"11","name":"Killer Whale","order":"Artiodactyla","family":"Delphinidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Orcinus orca","superorder":"Laurasiatheria","continent":["Africa","Antarctica","Asia","Europe","North America","Oceania","South America"],"iucn":"DD","alt":["Orca"]},{"lab":"11","name":"Common Bottlenose Dolphin","order":"Artiodactyla","family":"Delphinidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Tursiops truncatus","superorder":"Laurasiatheria","continent":["Africa","Asia","Europe","North America","Oceania","South America"],"iucn":"LC","alt":["Black Porpoise","Bottlenose Dolphin","Black Sea Bottlenose Dolphin"]},{"lab":"11","name":"American Bison","order":"Artiodactyla","family":"Bovidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Bos bison","superorder":"Laurasiatheria","continent":["North America"],"iucn":"NT","alt":["Buffalo","Plains Bison","Wood Bison"]},{"lab":"11","name":"Rocky Mountain Goat","order":"Artiodactyla","family":"Bovidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Oreamnos americanus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Mountain Goat","Snow Goat","White Goat"]},{"lab":"11","name":"Muskox","order":"Artiodactyla","family":"Bovidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Ovibos moschatus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC"},{"lab":"11","name":"Bighorn Sheep","order":"Artiodactyla","family":"Bovidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Ovis canadensis","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Mountain Sheep","Audubon Bighorn","California Bighorn","Desert Bighorn Sheep","Rocky Mountain Bighorn Sheep","Nelson's Bighorn Sheep","Mexican, Peninsular Bighorn Sheep","Weems's Bighorn Sheep","Sierra Nevada Bighorn Sheep"]},{"lab":"11","name":"Camels","order":"Artiodactyla","family":"Camelidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Domesticated"]},{"lab":"11","name":"Elk","order":"Artiodactyla","family":"Cervidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Cervus canadensis","superorder":"Laurasiatheria","continent":["Asia","North America"],"iucn":"LC","alt":["Elk","Alashan Wapiti (Elk)","Izubra","Manchurian Wapiti (Elk)","Merriam's Wapiti (Elk)","Tule Elk","Sichuan Shou","Macneill's Red Deer","Tibetan Shou","Rocky Mountain Wapiti (Elk)","Roosevelt's Wapiti (Elk)","Altai Wapiti (Elk)"]},{"lab":"11","name":"Mule Deer","order":"Artiodactyla","family":"Cervidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Odocoileus hemionus","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Black-tailed Deer"]},{"lab":"11","name":"White-tailed Deer","order":"Artiodactyla","family":"Cervidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Odocoileus virginianus","superorder":"Laurasiatheria","continent":["North America","South America"],"iucn":"LC","alt":["Florida Key Deer"]},{"lab":"11","name":"Caribou","order":"Artiodactyla","family":"Cervidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Rangifer tarandus","superorder":"Laurasiatheria","continent":["Asia","Europe","North America"],"iucn":"VU","alt":["Reindeer"]},{"lab":"11","name":"Moose","order":"Artiodactyla","family":"Cervidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Alces alces","superorder":"Laurasiatheria","continent":["Asia","Europe","North America"]},{"lab":"11","name":"Giraffe","order":"Artiodactyla","family":"Giraffidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Africa"]},{"lab":"11","name":"Hippopotamus","order":"Artiodactyla","family":"Hippopotamidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["Africa"]},{"lab":"11","name":"Sperm Whale","order":"Artiodactyla","family":"Physeteridae","subclass":"Theria","infraclass":"Placentalia","scientific":"Physeter macrocephalus","superorder":"Laurasiatheria","continent":["Africa","Antarctica","Asia","Europe","North America","Oceania","South America"],"iucn":"VU","alt":["Cachalot","Pot Whale","Spermacet Whale"]},{"lab":"11","name":"Domestic Pig","order":"Artiodactyla","family":"Suidae","subclass":"Theria","infraclass":"Placentalia","scientific":"Sus domesticus","superorder":"Laurasiatheria","continent":["Domesticated"],"iucn":"NA","alt":["Hog","Pig","Swine"]},{"lab":"11","name":"Peccary","order":"Artiodactyla","family":"Tayassuidae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["North America","South America"]},{"lab":"11","name":"Pronghorn","order":"Artiodactyla","family":"Antilocapridae","subclass":"Theria","infraclass":"Placentalia","superorder":"Laurasiatheria","continent":["North America"],"iucn":"LC","alt":["Prongbuck","Antelope","Sonoran Pronghorn"]}];
+
+// Field configuration. `core` fields default ON in the toggle bar;
+// non-core (scientific name / IUCN status) default OFF since the user only
+// needs to know those for a handful of species (and the data itself is only
+// populated for those species — it's simply skipped otherwise).
+const FIELD_DEFS = [
+  {id:'fName',        key:'name',        label:'Common name',    core:true},
+  {id:'fScientific',  key:'scientific',  label:'Scientific name', core:false, italic:true},
+  {id:'fSubclass',    key:'subclass',    label:'Subclass',       core:true},
+  {id:'fInfraclass',  key:'infraclass',  label:'Infraclass',     core:true},
+  {id:'fSuperorder',  key:'superorder',  label:'Superorder',     core:true},
+  {id:'fOrder',       key:'order',       label:'Order',          core:true},
+  {id:'fFamily',      key:'family',      label:'Family',         core:true},
+  {id:'fContinent',   key:'continent',   label:'Continent(s)',   core:true, wide:true},
+  {id:'fIucn',        key:'iucn',        label:'IUCN status',    core:false},
+];
+const fieldEnabled = {};
+FIELD_DEFS.forEach(f => fieldEnabled[f.id] = f.core);
+
+const IUCN_WORDS = {
+  'least concern':'LC','lc':'LC',
+  'near threatened':'NT','nt':'NT',
+  'vulnerable':'VU','vu':'VU',
+  'endangered':'EN','en':'EN',
+  'critically endangered':'CR','cr':'CR',
+  'extinct in the wild':'EW','ew':'EW',
+  'extinct':'EX','ex':'EX',
+  'data deficient':'DD','dd':'DD',
+  'not assessed':'NA','not applicable':'NA','na':'NA','n/a':'NA'
+};
+
+// ─────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────
+const LABS = [...new Set(MAMMALS.map(m => m.lab))].sort((a,b)=>parseInt(a)-parseInt(b));
+let filtered = [...MAMMALS], queue = [], current = 0, score = 0, total = 0, streak = 0, answered = false, hintStage = 0;
+let activeLabs = new Set(LABS);
+let missedAnimals = [];
+let quizStartTime = null;
+let loadingToken = 0;
+
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+
+function rebuildQueue(){
+  filtered = MAMMALS.filter(m => activeLabs.has(m.lab));
+  queue = shuffle([...filtered]);
+  current = 0; score = 0; total = 0; streak = 0; hintStage = 0; missedAnimals = []; quizStartTime = Date.now();
+  updateScorebar(); loadAnimal();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// PHOTO FETCH (best effort — many entries are group-level, may have no photo)
+// ─────────────────────────────────────────────────────────────────────────
+const photoCache = {};
+async function fetchTaxonPhoto(query){
+  if(!query) return null;
+  if(photoCache[query] !== undefined) return photoCache[query];
+  try{
+    const url = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(query)}&per_page=1`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const taxon = data.results && data.results[0];
+    if(taxon && taxon.default_photo && taxon.default_photo.medium_url){
+      photoCache[query] = taxon.default_photo.medium_url;
+      return taxon.default_photo.medium_url;
+    }
+  }catch(e){}
+  photoCache[query] = null;
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// RENDER QUESTION
+// ─────────────────────────────────────────────────────────────────────────
+function activeFields(m){
+  return FIELD_DEFS.filter(f => fieldEnabled[f.id] && m[f.key] !== undefined);
+}
+
+function buildFieldInputs(m){
+  const wrap = document.getElementById('fieldsWrap');
+  wrap.innerHTML = '';
+  activeFields(m).forEach(f => {
+    const group = document.createElement('div');
+    group.className = 'field-group' + (f.wide ? ' wide' : '');
+    const label = document.createElement('label');
+    label.textContent = f.label;
+    const input = document.createElement('input');
+    input.id = f.id;
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    if(f.italic) input.classList.add('italic-input');
+    input.placeholder = f.key === 'continent' ? 'e.g. North America, Europe' : '';
+    group.appendChild(label);
+    group.appendChild(input);
+    wrap.appendChild(group);
+  });
+}
+
+async function loadAnimal(){
+  if(current >= queue.length){ showEndModal(); return; }
+  answered = false; hintStage = 0;
+  const m = queue[current];
+  const token = ++loadingToken;
+
+  const img = document.getElementById('animalImg');
+  const noImg = document.getElementById('noImg');
+  const loadMsg = document.getElementById('imgLoadingMsg');
+  const credit = document.getElementById('inatCredit');
+  const labTag = document.getElementById('labTag');
+  img.style.display = 'none';
+  noImg.style.display = 'none';
+  credit.style.display = 'none';
+  loadMsg.style.display = 'flex';
+  loadMsg.textContent = 'Loading photo…';
+  labTag.style.display = 'block';
+  labTag.textContent = 'Lab ' + m.lab;
+
+  buildFieldInputs(m);
+  document.getElementById('feedbackBox').innerHTML = '';
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('hintBtn').disabled = false;
+  updateScorebar();
+  document.getElementById('qNum').textContent = current + 1;
+  document.getElementById('qTotal').textContent = queue.length;
+  document.getElementById('progressFill').style.width = ((current / queue.length) * 100) + '%';
+  const firstInput = document.querySelector('#fieldsWrap input');
+  if(firstInput) firstInput.focus();
+
+  const photoUrl = await fetchTaxonPhoto(m.scientific || m.name);
+  if(token !== loadingToken) return;
+  loadMsg.style.display = 'none';
+  if(photoUrl){
+    img.style.display = 'block';
+    img.classList.add('loading');
+    img.onload = () => { img.classList.remove('loading'); credit.style.display = 'block'; };
+    img.onerror = () => { img.style.display = 'none'; noImg.style.display = 'flex'; credit.style.display = 'none'; };
+    img.src = photoUrl;
+    img.alt = 'Mammal specimen';
+  } else {
+    noImg.style.display = 'flex';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ANSWER CHECKING
+// ─────────────────────────────────────────────────────────────────────────
+function normalize(s){
+  return String(s).trim().toLowerCase().replace(/\s+/g,' ').replace(/[()]/g,'');
+}
+function splitList(s){
+  return normalize(s).split(/[,;|/]|(?:\band\b)/).map(x=>x.trim()).filter(Boolean);
+}
+function checkField(f, userVal, m){
+  const val = normalize(userVal);
+  if(f.key === 'name'){
+    const candidates = [m.name, ...(m.alt||[])].map(normalize);
+    return candidates.includes(val);
+  }
+  if(f.key === 'scientific'){
+    return val === normalize(m.scientific);
+  }
+  if(f.key === 'continent'){
+    const given = new Set(splitList(userVal));
+    const correct = new Set(m.continent.map(normalize));
+    if(given.size !== correct.size) return false;
+    for(const c of correct) if(!given.has(c)) return false;
+    return true;
+  }
+  if(f.key === 'iucn'){
+    const mapped = IUCN_WORDS[val] || val.toUpperCase();
+    return mapped === m.iucn;
+  }
+  return val === normalize(m[f.key]);
+}
+function displayAnswer(f, m){
+  if(f.key === 'continent') return m.continent.join(', ');
+  return m[f.key];
+}
+
+function checkAnswer(){
+  if(answered) return;
+  answered = true;
+  const m = queue[current];
+  const fields = activeFields(m);
+  let correct = 0, html = '';
+  fields.forEach(f => {
+    const el = document.getElementById(f.id);
+    const ok = checkField(f, el.value, m);
+    el.className = (f.italic ? 'italic-input ' : '') + (ok ? 'correct' : 'incorrect');
+    el.disabled = true;
+    if(!ok) html += `<div class="feedback-row"><span class="icon">✗</span>${f.label}: <span class="answer">${displayAnswer(f, m)}</span></div>`;
+    else correct++;
+  });
+  total++;
+  if(correct === fields.length){ score++; streak++; } else { streak = 0; missedAnimals.push(m); }
+  updateScorebar();
+  const box = document.getElementById('feedbackBox');
+  if(correct === fields.length){
+    box.innerHTML = '<div class="feedback correct-all"><div class="feedback-row"><span class="icon">✓</span>All correct! Next question in a moment…</div></div>';
+    setTimeout(nextAnimal, 1800);
+  } else {
+    const cls = fields.length > 0 && correct / fields.length >= 0.5 ? 'partial' : 'wrong';
+    box.innerHTML = `<div class="feedback ${cls}">${html || '<div class="feedback-row"><span class="icon">✓</span>All correct!</div>'}</div>`;
+    document.getElementById('submitBtn').disabled = true;
+  }
+}
+function nextAnimal(){ current++; loadAnimal(); }
+
+function showHint(){
+  const m = queue[current];
+  const hints = [];
+  hints.push('Order: ' + m.order);
+  hints.push('Family: ' + m.family);
+  hints.push('Subclass: ' + m.subclass + (m.superorder ? ' / Superorder: ' + m.superorder : ''));
+  if(m.scientific) hints.push('Genus: ' + m.scientific.split(' ')[0]);
+  hints.push('Common name starts with: "' + m.name[0].toUpperCase() + '…"');
+  hintStage = hintStage % hints.length;
+  document.getElementById('feedbackBox').innerHTML = `<div class="feedback partial"><div class="feedback-row"><span class="icon">i</span>Hint ${hintStage+1}/${hints.length}: ${hints[hintStage]}</div></div>`;
+  hintStage++;
+}
+
+function updateScorebar(){
+  document.getElementById('scoreDisplay').textContent = score;
+  document.getElementById('totalDisplay').textContent = total;
+  document.getElementById('streak').textContent = streak;
+}
+
+function showEndModal(){
+  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+  document.getElementById('finalScore').textContent = score + '/' + total + ' (' + pct + '%)';
+  const elapsed = Math.floor((Date.now() - quizStartTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  document.getElementById('finalTime').textContent = '⏱ ' + (mins > 0 ? mins + 'm ' : '') + secs + 's';
+  document.getElementById('finalMsg').textContent =
+    pct >= 90 ? 'Outstanding! You really know your mammals.' :
+    pct >= 70 ? 'Great work — solid mammalogy knowledge!' :
+    pct >= 50 ? 'Good effort. Keep studying and try again!' :
+    'Keep at it — review your list and try again!';
+  const retryBtn = document.getElementById('retryBtn');
+  if(missedAnimals.length > 0){
+    retryBtn.style.display = 'block';
+    retryBtn.textContent = 'Retry ' + missedAnimals.length + ' missed question' + (missedAnimals.length === 1 ? '' : 's');
+  } else {
+    retryBtn.style.display = 'none';
+  }
+  document.getElementById('endModal').classList.add('open');
+}
+function retryMissed(){
+  document.getElementById('endModal').classList.remove('open');
+  queue = shuffle([...missedAnimals]);
+  missedAnimals = [];
+  current = 0; score = 0; total = 0; streak = 0; hintStage = 0; quizStartTime = Date.now();
+  updateScorebar(); loadAnimal();
+}
+function restartQuiz(){
+  document.getElementById('endModal').classList.remove('open');
+  rebuildQueue();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// FILTER / TOGGLE BARS
+// ─────────────────────────────────────────────────────────────────────────
+function buildFilterBar(){
+  const bar = document.getElementById('filterBar');
+  bar.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'filter-btn' + (activeLabs.size === LABS.length ? ' active' : '');
+  allBtn.textContent = 'All labs';
+  allBtn.onclick = () => { activeLabs = new Set(LABS); rebuildQueue(); renderFilters(); };
+  bar.appendChild(allBtn);
+  LABS.forEach(l => {
+    const b = document.createElement('button');
+    b.className = 'filter-btn' + (activeLabs.has(l) ? ' active' : '');
+    b.textContent = 'Lab ' + l;
+    b.onclick = () => {
+      if(activeLabs.has(l) && activeLabs.size > 1) activeLabs.delete(l);
+      else activeLabs.add(l);
+      rebuildQueue(); renderFilters();
+    };
+    bar.appendChild(b);
+  });
+}
+function renderFilters(){
+  const btns = document.querySelectorAll('#filterBar .filter-btn');
+  btns[0].className = 'filter-btn' + (activeLabs.size === LABS.length ? ' active' : '');
+  LABS.forEach((l, i) => { btns[i+1].className = 'filter-btn' + (activeLabs.has(l) ? ' active' : ''); });
+}
+
+function buildToggleBar(){
+  const bar = document.getElementById('toggleBar');
+  bar.innerHTML = '';
+  FIELD_DEFS.forEach(f => {
+    const b = document.createElement('button');
+    b.className = 'filter-btn' + (fieldEnabled[f.id] ? ' active' : '');
+    b.textContent = f.label;
+    b.onclick = () => {
+      fieldEnabled[f.id] = !fieldEnabled[f.id];
+      b.classList.toggle('active', fieldEnabled[f.id]);
+      loadAnimal();
+    };
+    bar.appendChild(b);
+  });
+}
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && document.activeElement.tagName === 'INPUT' && !answered) checkAnswer();
+});
+
+buildFilterBar();
+buildToggleBar();
+rebuildQueue();
+</script>
+</body>
+</html>
