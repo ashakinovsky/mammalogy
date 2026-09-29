@@ -72,6 +72,9 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--te
 .feedback-row{display:flex;align-items:center;gap:6px;padding:2px 0}
 .feedback-row .icon{font-size:13px;width:16px;text-align:center;flex-shrink:0}
 .feedback-row .answer{font-weight:600}
+.feedback-row{flex-wrap:wrap}
+.override-btn{margin-left:auto;font-size:11px;padding:3px 9px;border-radius:10px;border:0.5px solid currentColor;background:transparent;color:inherit;cursor:pointer;font-family:'Source Sans 3',sans-serif;opacity:0.75;transition:opacity 0.15s}
+.override-btn:hover{opacity:1}
 .mode-info{text-align:center;font-size:12px;color:var(--text3);padding-top:8px;border-top:0.5px solid var(--border);margin-top:4px}
 .mode-info strong{color:var(--text2)}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:center;justify-content:center}
@@ -288,61 +291,179 @@ function normalize(s){
 function splitList(s){
   return normalize(s).split(/[,;|/]|(?:\band\b)/).map(x=>x.trim()).filter(Boolean);
 }
+
+// Fuzzy matching so small typos / singular-vs-plural ("primate" vs "Primates")
+// don't get marked wrong. FUZZY_THRESHOLD is a similarity ratio (0-1) using
+// Damerau-Levenshtein distance (counts adjacent-letter transpositions, like
+// "rodentai", as a single edit). 0.82 reliably forgives one-letter typos,
+// dropped letters, and trailing-s mismatches while still catching genuinely
+// different words.
+const FUZZY_THRESHOLD = 0.82;
+function damerauLevenshtein(a, b){
+  const m = a.length, n = b.length;
+  const d = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+  for(let i = 0; i <= m; i++) d[i][0] = i;
+  for(let j = 0; j <= n; j++) d[0][j] = j;
+  for(let i = 1; i <= m; i++){
+    for(let j = 1; j <= n; j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + cost);
+      if(i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]){
+        d[i][j] = Math.min(d[i][j], d[i-2][j-2] + 1);
+      }
+    }
+  }
+  return d[m][n];
+}
+function similarity(a, b){
+  if(a === b) return 1;
+  const maxLen = Math.max(a.length, b.length);
+  if(maxLen === 0) return 1;
+  return 1 - damerauLevenshtein(a, b) / maxLen;
+}
+function stripTrailingS(s){
+  return s.endsWith('s') && s.length > 1 ? s.slice(0, -1) : s;
+}
+// vocabSet, when given, is the set of every valid normalized value for this
+// field across the whole dataset. If what the person typed happens to be an
+// exact match for a DIFFERENT real answer (e.g. typing "Canidae" when the
+// correct family is the similarly-spelled "Manidae"), fuzzy matching backs
+// off and counts it wrong rather than letting surface similarity paper over
+// a genuinely different taxonomic answer.
+function fuzzyEquals(userVal, correctVal, vocabSet){
+  const a = normalize(userVal), b = normalize(correctVal);
+  if(!a || !b) return false;
+  if(a === b) return true;
+  if(stripTrailingS(a) === stripTrailingS(b)) return true;
+  if(vocabSet && vocabSet.has(a) && stripTrailingS(a) !== stripTrailingS(b)) return false;
+  return similarity(a, b) >= FUZZY_THRESHOLD;
+}
+
+// Vocabularies for the exact-different-real-answer guard above, built once
+// from the full dataset.
+const VOCAB = {};
+['subclass','infraclass','superorder','order','family','scientific'].forEach(key => {
+  const set = new Set();
+  MAMMALS.forEach(m => { if(m[key]) set.add(normalize(m[key])); });
+  VOCAB[key] = set;
+});
+VOCAB.name = new Set();
+MAMMALS.forEach(m => {
+  VOCAB.name.add(normalize(m.name));
+  (m.alt || []).forEach(a => VOCAB.name.add(normalize(a)));
+});
+VOCAB.continent = new Set(['africa','antarctica','asia','europe','north america','oceania','south america','domesticated','global','everywhere']);
+
 function checkField(f, userVal, m){
   const val = normalize(userVal);
   if(f.key === 'name'){
-    const candidates = [m.name, ...(m.alt||[])].map(normalize);
-    return candidates.includes(val);
+    const candidates = [m.name, ...(m.alt||[])];
+    return candidates.some(c => fuzzyEquals(val, c, VOCAB.name));
   }
   if(f.key === 'scientific'){
-    return val === normalize(m.scientific);
+    return fuzzyEquals(val, m.scientific, VOCAB.scientific);
   }
   if(f.key === 'continent'){
-    const given = new Set(splitList(userVal));
-    const correct = new Set(m.continent.map(normalize));
-    if(given.size !== correct.size) return false;
-    for(const c of correct) if(!given.has(c)) return false;
+    // Each typed continent just needs to fuzzy-match some correct continent,
+    // and vice versa, so a small typo doesn't break the whole set comparison.
+    const given = splitList(userVal);
+    const correct = m.continent.map(normalize);
+    if(given.length !== correct.length) return false;
+    const usedCorrect = new Set();
+    for(const g of given){
+      let matchIdx = -1;
+      for(let i=0;i<correct.length;i++){
+        if(usedCorrect.has(i)) continue;
+        if(fuzzyEquals(g, correct[i], VOCAB.continent)){ matchIdx = i; break; }
+      }
+      if(matchIdx === -1) return false;
+      usedCorrect.add(matchIdx);
+    }
     return true;
   }
   if(f.key === 'iucn'){
     const mapped = IUCN_WORDS[val] || val.toUpperCase();
     return mapped === m.iucn;
   }
-  return val === normalize(m[f.key]);
+  return fuzzyEquals(val, m[f.key], VOCAB[f.key]);
 }
 function displayAnswer(f, m){
   if(f.key === 'continent') return m.continent.join(', ');
   return m[f.key];
 }
 
+// Tracks the state of the question currently being graded, so the
+// "I actually got this right" override button can retroactively fix the
+// score, streak and missed-question list after checkAnswer() has already run.
+let overrideState = null;
+
 function checkAnswer(){
   if(answered) return;
   answered = true;
   const m = queue[current];
   const fields = activeFields(m);
-  let correct = 0, html = '';
+  let correct = 0;
+  const wrongFieldIds = [];
   fields.forEach(f => {
     const el = document.getElementById(f.id);
     const ok = checkField(f, el.value, m);
     el.className = (f.italic ? 'italic-input ' : '') + (ok ? 'correct' : 'incorrect');
     el.disabled = true;
-    if(!ok) html += `<div class="feedback-row"><span class="icon">✗</span>${f.label}: <span class="answer">${displayAnswer(f, m)}</span></div>`;
-    else correct++;
+    if(!ok) wrongFieldIds.push(f.id); else correct++;
   });
   total++;
-  if(correct === fields.length){ score++; streak++; } else { streak = 0; missedAnimals.push(m); }
+  const wasFullyCorrect = correct === fields.length;
+  if(wasFullyCorrect){ score++; streak++; } else { streak = 0; missedAnimals.push(m); }
   updateScorebar();
-  const box = document.getElementById('feedbackBox');
-  if(correct === fields.length){
-    box.innerHTML = '<div class="feedback correct-all"><div class="feedback-row"><span class="icon">✓</span>All correct! Next question in a moment…</div></div>';
+  overrideState = { m, fields, wrongFieldIds: new Set(wrongFieldIds), overridden: new Set(), scoredCorrect: wasFullyCorrect };
+  renderFeedback();
+  if(wasFullyCorrect){
     setTimeout(nextAnimal, 1800);
-  } else {
-    const cls = fields.length > 0 && correct / fields.length >= 0.5 ? 'partial' : 'wrong';
-    box.innerHTML = `<div class="feedback ${cls}">${html || '<div class="feedback-row"><span class="icon">✓</span>All correct!</div>'}</div>`;
-    document.getElementById('submitBtn').disabled = true;
   }
 }
-function nextAnimal(){ current++; loadAnimal(); }
+
+function renderFeedback(){
+  const box = document.getElementById('feedbackBox');
+  const st = overrideState;
+  const remainingWrong = [...st.wrongFieldIds].filter(id => !st.overridden.has(id));
+  if(remainingWrong.length === 0){
+    box.innerHTML = '<div class="feedback correct-all"><div class="feedback-row"><span class="icon">✓</span>All correct! Next question in a moment…</div></div>';
+    if(!st.wasAutoAdvanced){ st.wasAutoAdvanced = true; setTimeout(nextAnimal, 1200); }
+    return;
+  }
+  const correctCount = st.fields.length - remainingWrong.length;
+  const cls = st.fields.length > 0 && correctCount / st.fields.length >= 0.5 ? 'partial' : 'wrong';
+  const rows = remainingWrong.map(id => {
+    const f = st.fields.find(fd => fd.id === id);
+    return `<div class="feedback-row"><span class="icon">✗</span>${f.label}: <span class="answer">${displayAnswer(f, st.m)}</span>
+      <button class="override-btn" onclick="overrideField('${id}')">I got this right</button></div>`;
+  }).join('');
+  box.innerHTML = `<div class="feedback ${cls}">${rows}</div>`;
+  document.getElementById('submitBtn').disabled = true;
+}
+
+function overrideField(fieldId){
+  const st = overrideState;
+  if(!st || st.overridden.has(fieldId)) return;
+  st.overridden.add(fieldId);
+  const el = document.getElementById(fieldId);
+  const f = st.fields.find(fd => fd.id === fieldId);
+  el.className = (f.italic ? 'italic-input ' : '') + 'correct';
+  const allResolved = [...st.wrongFieldIds].every(id => st.overridden.has(id));
+  if(allResolved && !st.scoredCorrect){
+    // Retroactively fix the score, streak, and missed list now that every
+    // field on this question is confirmed correct.
+    st.scoredCorrect = true;
+    score++;
+    streak++;
+    const idx = missedAnimals.lastIndexOf(st.m);
+    if(idx !== -1) missedAnimals.splice(idx, 1);
+    updateScorebar();
+  }
+  renderFeedback();
+}
+
+function nextAnimal(){ overrideState = null; current++; loadAnimal(); }
 
 function showHint(){
   const m = queue[current];
